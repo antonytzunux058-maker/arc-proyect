@@ -98,7 +98,7 @@ nav button.on{background:linear-gradient(135deg,#B3121F,#6E0B15);border-color:va
 input:focus,select:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(79,216,255,.18);outline:0}
 input:disabled,select:disabled{opacity:.75}
 .kp div{background:linear-gradient(160deg,#0F2036,#0A1422);border:1px solid var(--line);border-left:3px solid var(--cyan)}
-.kp div:nth-child(3){border-left-color:var(--gold)}
+.kp div:nth-child(3){background:linear-gradient(160deg,#0F2036,#0A1422);border-left-color:var(--gold)}
 .kp b{font-size:28px;color:var(--cyan);text-shadow:0 0 12px rgba(79,216,255,.55);font-variant-numeric:tabular-nums}
 .kp div:nth-child(3) b{color:var(--gold);text-shadow:0 0 12px rgba(224,168,26,.5)}
 .row{background:rgba(13,22,35,.9);animation:rise .45s both;transition:border-color .2s,transform .2s}
@@ -149,7 +149,7 @@ body.op .adm{display:none}
 
 <section id="v2" hidden>
  <div class="card"><h2 id="ft">Nueva orden <span id="oid"></span></h2>
-  <div class="sc" style="margin-bottom:12px"><button class="btn" data-s="s1">Cargar: Escenario 1 · 20 pts directa</button><button class="btn" data-s="s2">Cargar: Escenario 2 · 25 pts con corte previo</button><button class="btn" data-s="s3">Cargar: Escenario 3 · Liners</button></div>
+  <div class="sc" style="margin-bottom:12px"><button class="btn" data-s="s1">Cargar: Laminación PE en cartón de 20 pts</button><button class="btn" data-s="s2">Cargar: Laminación PE en cartón de 25 pts</button></div>
   <label>Producto / cliente<input id="producto" placeholder="Ej. Laminación cartón 20 pts"></label>
   <div class="g3 g" style="margin-top:10px">
    <label>Fecha de registro<input id="reg" readonly></label>
@@ -211,8 +211,8 @@ const days=(a,b)=>Math.round((new Date(b+"T00:00")-new Date(a+"T00:00"))/864e5);
 /* ===== Escenarios de prueba ===== */
 const K=["producto","prog","ent","area","util","cA","pts","cG","cL","cP","fA","fL","fS","fN","slit","cera","pb","bp"];
 const SC={
- s1:{producto:"Laminación 20 pts directa (396 mm)",area:2500,util:396,cA:406,pts:20,cG:280,cL:"",cP:"",fA:400,fL:1190.7,fS:476.3,fN:58.5,slit:0,cera:15,liners:[]},
- s2:{producto:"Laminación 25 pts con corte previo (400→350→346)",area:2500,util:346,cA:362,pts:25,cG:330,cL:1530,cP:179,fA:400,fL:1190.7,fS:476.3,fN:58.5,slit:350,cera:15,liners:[]},
+ s1:{producto:"Laminación PE en cartón de 20 pts",area:2500,util:396,cA:406,pts:20,cG:280,cL:"",cP:"",fA:400,fL:1190.7,fS:476.3,fN:58.5,slit:0,cera:15,liners:[]},
+ s2:{producto:"Laminación PE en cartón de 25 pts",area:2500,util:346,cA:362,pts:25,cG:330,cL:1530,cP:179,fA:400,fL:1190.7,fS:476.3,fN:58.5,slit:350,cera:15,liners:[]},
  s3:{producto:"Liners con margen de corte",area:0,util:0,cA:"",pts:"",cG:"",cL:"",cP:"",fA:"",fL:"",fS:"",fN:"",slit:0,cera:0,liners:[{n:"Liner 54 mm",m:54,g:6},{n:"Liner 46 mm",m:46,g:6}]}
 };
 
@@ -367,7 +367,7 @@ async function del(id){try{const r=await rest("arc_orders?id=eq."+id,{method:"DE
 
 /* Permisos en pantalla */
 const opts=o=>{const l=isAdmin()?EST:["En producción","Completa"];return(l.includes(o.est)?"":'<option selected disabled>'+o.est+"</option>")+l.map(e=>"<option"+(e===o.est?" selected":"")+">"+e+"</option>").join("")};
-function lock(on){document.querySelectorAll("#v2 input,#v2 select,#v2 .btn:not(#cancel)").forEach(e=>e.disabled=on);$("#save").hidden=on;$("#cancel").textContent=on?"Volver":"Cancelar"}
+function lock(on){$("#ft").firstChild.textContent=on?"Detalle de orden ":editing?"Editar orden ":"Nueva orden ";document.querySelectorAll("#v2 input,#v2 select,#v2 .btn:not(#cancel)").forEach(e=>e.disabled=on);$("#save").hidden=on;$("#cancel").textContent=on?"Volver":"Cancelar"}
 
 /* Animación de cifras de los indicadores */
 const kv={};
