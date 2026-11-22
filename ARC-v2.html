@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="es" data-theme="stark"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#070B12">
+<title>ARC · Advanced Resource Control</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0B2C5F;--navy2:#0F3D7A;--cyan:#0099DC;--bg:#F4F7FA;--card:#fff;--line:#DCE5F0;--ink:#102033;--mut:#5B6B80;--amb:#92400E;--ambbg:#FEF3C7;--ok:#047857;--okbg:#D1FAE5;--bad:#B91C1C;--badbg:#FEE2E2;--inp:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0A1626;--card:#11233A;--line:#25405F;--ink:#E6EEF8;--mut:#9FB2C8;--amb:#FCD34D;--ambbg:#3A2E0B;--ok:#34D399;--okbg:#0B3A2C;--bad:#FCA5A5;--badbg:#4A1616;--inp:#0D1C30}}
+*,*::before,*::after{box-sizing:inherit}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 Barlow,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{background:linear-gradient(100deg,var(--navy),var(--navy2));color:#fff;padding:14px 16px;display:flex;align-items:center;gap:14px;border-bottom:4px solid var(--cyan)}
+.logo{font:700 34px/1 "Barlow Condensed",Barlow,sans-serif;letter-spacing:.06em}
+.logo i{display:block;height:3px;background:var(--cyan);margin-top:3px}
+header p{margin:0;font-size:13px;opacity:.85;line-height:1.3}
+header b{font-weight:600;font-size:15px;opacity:1;display:block}
+main{max-width:1100px;margin:0 auto;padding:14px}
+nav{display:flex;gap:6px;margin-bottom:14px}
+nav button{flex:1;min-height:46px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 16px Barlow,sans-serif;border-radius:6px;cursor:pointer}
+nav button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:14px}
+h2{font:700 21px "Barlow Condensed",Barlow,sans-serif;letter-spacing:.03em;margin:0 0 10px;color:var(--navy2)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) h2{color:#7CC8F0}}
+.g{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.g3{grid-template-columns:repeat(2,1fr)}
+label{display:block;font-size:13px;color:var(--mut);font-weight:500}
+input,select{width:100%;min-height:46px;margin-top:3px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--inp);color:var(--ink);font:500 16px Barlow,sans-serif}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--cyan);outline-offset:1px}
+input[readonly]{background:var(--bg);color:var(--mut)}
+.full{grid-column:1/-1}
+.sc{display:flex;flex-wrap:wrap;gap:8px}
+.btn{min-height:46px;padding:0 16px;border:1px solid var(--cyan);background:transparent;color:var(--navy2);font:600 15px Barlow,sans-serif;border-radius:6px;cursor:pointer}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn{color:#7CC8F0}}
+.btn.p{background:var(--navy);border-color:var(--navy);color:#fff}
+.btn.p:disabled{opacity:.4;cursor:not-allowed}
+.btn.s{min-height:38px;padding:0 10px;font-size:14px}
+.kp{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.kp div{background:var(--navy);color:#fff;border-radius:8px;padding:10px;border-left:4px solid var(--cyan)}
+.kp div:nth-child(3){background:var(--navy2)}
+.kp small{display:block;font-size:12px;opacity:.8}
+.kp b{font:700 24px/1.1 "Barlow Condensed",Barlow,sans-serif}
+.kp em{font-style:normal;font-size:12px;opacity:.8}
+.al{padding:9px 12px;border-radius:6px;margin:6px 0;font-size:14px;font-weight:500}
+.al.bad{background:var(--badbg);color:var(--bad)}.al.warn{background:var(--ambbg);color:var(--amb)}.al.ok{background:var(--okbg);color:var(--ok)}
+dl{margin:0 0 4px}
+dl div{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px dashed var(--line)}
+dt{color:var(--mut)}dd{margin:0;font-weight:600;text-align:right}
+dd.w{color:var(--amb)}
+h3{margin:12px 0 4px;font-size:16px}
+.chip{display:inline-block;margin-top:4px;font-size:13px;font-weight:600;color:var(--cyan)}
+.lr{display:grid;grid-template-columns:1.4fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px}
+.lr .t{font-size:13px;color:var(--mut)}.lr .t b{display:block;color:var(--ink);font-size:16px}
+.bd{display:inline-block;padding:3px 9px;border-radius:99px;font-size:12px;font-weight:600;background:var(--okbg);color:var(--ok)}
+.bd.Borrador{background:var(--line);color:var(--mut)}.bd.Programada{background:#DBEEFA;color:#0369A1}.bd.Cerrada{background:var(--okbg);color:var(--ok)}.bd.EnProduccion{background:var(--ambbg);color:var(--amb)}
+.row{border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--card);display:grid;gap:6px}
+.row .id{font:700 20px "Barlow Condensed",sans-serif;color:var(--navy2)}
+.row .ds{font-size:13px;color:var(--mut)}
+.row .ac{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.row .ac select{width:auto;min-height:38px;margin:0}
+.hd{display:none}
+.empty{text-align:center;color:var(--mut);padding:24px}
+@media(min-width:760px){
+ .g{grid-template-columns:repeat(4,1fr)}.g3{grid-template-columns:repeat(3,1fr)}
+ .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+ .hd,.row{display:grid;grid-template-columns:90px 1.4fr 1.6fr 120px 130px 1.3fr;align-items:center;gap:10px}
+ .hd{padding:0 12px 6px;font-size:13px;color:var(--mut);font-weight:600}
+ .row{padding:10px 12px;margin-bottom:6px}
+}
+@media(prefers-reduced-motion:no-preference){.kp b{transition:opacity .2s}}
+</style><style>
+/* ===== Tema Stark: negro profundo, rojo, oro y cian del reactor ===== */
+:root[data-theme="stark"]{color-scheme:dark;--bg:#070B12;--card:#0D1623;--line:#1F3550;--ink:#E7EEF8;--mut:#8CA0BA;--navy:#B3121F;--navy2:#E0A81A;--cyan:#4FD8FF;--inp:#09111C;--amb:#FCD34D;--ambbg:#3A2E0B;--ok:#34D399;--okbg:#0B3A2C;--bad:#FF9A9A;--badbg:#4A1616;--gold:#E0A81A}
+html,body{background:var(--bg)}body{background:transparent;font-family:Rajdhani,"Segoe UI",system-ui,sans-serif;font-size:17px;font-weight:500}
+input,select,button,.logo,h2,.kp b,.row .id{font-family:Rajdhani,"Segoe UI",system-ui,sans-serif}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(900px 500px at 88% -10%,rgba(79,216,255,.13),transparent 60%),radial-gradient(700px 500px at -10% 0,rgba(179,18,31,.2),transparent 60%),linear-gradient(rgba(79,216,255,.035) 1px,transparent 1px) 0 0/44px 44px,linear-gradient(90deg,rgba(79,216,255,.035) 1px,transparent 1px) 0 0/44px 44px}
+header{position:relative;overflow:hidden;flex-wrap:wrap;background:linear-gradient(100deg,#0A1220,#1A0A10);border-bottom:1px solid var(--gold)}
+header::after{content:"";position:absolute;left:0;bottom:0;height:2px;width:30%;background:linear-gradient(90deg,transparent,var(--cyan),transparent);animation:scan 3.2s linear infinite}
+.logo{display:flex;align-items:center;gap:10px;font-size:34px;letter-spacing:.14em;text-shadow:0 0 14px rgba(79,216,255,.5)}
+.rx{width:44px;height:44px;filter:drop-shadow(0 0 7px rgba(79,216,255,.85))}
+.rx *{transform-box:fill-box;transform-origin:center}
+.r1{animation:spin 9s linear infinite}.r2{animation:spin 6s linear infinite reverse}.r0{animation:pulse 2.4s ease-in-out infinite}
+header p b{color:var(--gold);letter-spacing:.12em;text-transform:uppercase}
+#who{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:15px}#who[hidden]{display:none}#wn{color:var(--gold);font-weight:600}
+.card,.row,.al,.btn,input,select,nav button,.kp div{border-radius:4px}
+.card{position:relative;background:linear-gradient(180deg,rgba(18,31,48,.92),rgba(11,19,31,.92));animation:rise .5s both;transition:border-color .25s,box-shadow .25s}
+.card:hover{border-color:rgba(79,216,255,.5);box-shadow:0 0 22px rgba(79,216,255,.08)}
+.card::before,.card::after{content:"";position:absolute;width:12px;height:12px;pointer-events:none;border:2px solid var(--gold)}
+.card::before{top:-1px;left:-1px;border-right:0;border-bottom:0}.card::after{bottom:-1px;right:-1px;border-left:0;border-top:0}
+h2{color:var(--gold)!important;text-transform:uppercase;letter-spacing:.14em;font-size:18px}
+nav button{background:transparent;text-transform:uppercase;letter-spacing:.1em;transition:all .25s}
+nav button:hover{border-color:var(--cyan);box-shadow:0 0 12px rgba(79,216,255,.25)}
+nav button.on{background:linear-gradient(135deg,#B3121F,#6E0B15);border-color:var(--gold);box-shadow:0 0 16px rgba(179,18,31,.5)}
+.btn{color:var(--cyan)!important;border-color:rgba(79,216,255,.5);background:rgba(79,216,255,.05);text-transform:uppercase;letter-spacing:.06em;transition:all .2s}
+.btn:hover:not(:disabled){background:rgba(79,216,255,.15);box-shadow:0 0 14px rgba(79,216,255,.35);transform:translateY(-1px)}
+.btn.p{color:#fff!important;background:linear-gradient(135deg,#C8142B,#7C0C17);border-color:var(--gold)}
+.btn.p:hover:not(:disabled){box-shadow:0 0 16px rgba(224,168,26,.5)}
+.btn:disabled{opacity:.4}
+input:focus,select:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(79,216,255,.18);outline:0}
+input:disabled,select:disabled{opacity:.75}
+.kp div{background:linear-gradient(160deg,#0F2036,#0A1422);border:1px solid var(--line);border-left:3px solid var(--cyan)}
+.kp div:nth-child(3){border-left-color:var(--gold)}
+.kp b{font-size:28px;color:var(--cyan);text-shadow:0 0 12px rgba(79,216,255,.55);font-variant-numeric:tabular-nums}
+.kp div:nth-child(3) b{color:var(--gold);text-shadow:0 0 12px rgba(224,168,26,.5)}
+.row{background:rgba(13,22,35,.9);animation:rise .45s both;transition:border-color .2s,transform .2s}
+.row:hover{border-color:var(--cyan);transform:translateX(3px)}
+.row:nth-child(n+2){animation-delay:.06s}.row:nth-child(n+4){animation-delay:.12s}.row:nth-child(n+6){animation-delay:.18s}
+.al{border-left:3px solid currentColor;animation:pop .3s both}
+main section:not([hidden]){animation:rise .35s both}
+.bd.Completa{background:var(--okbg);color:var(--ok)}.bd.EnProduccion{animation:glow 2s ease-in-out infinite}
+body.op .adm{display:none}
+[hidden]{display:none!important}
+.ur{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line)}.ur b{flex:1 1 190px}.ur select{width:auto;min-height:38px;margin:0}
+#lg{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:16px;background:rgba(5,8,14,.94);backdrop-filter:blur(6px);overflow:auto}#lg[hidden]{display:none}
+.lgc{width:min(400px,100%);padding:26px 22px;text-align:center;margin:0}
+.lgc .rx{width:88px;height:88px;display:block;margin:0 auto 6px}
+.lgc h1{margin:0;font-size:30px;letter-spacing:.22em;color:#fff;text-shadow:0 0 16px rgba(79,216,255,.5)}
+.lgc p{margin:2px 0 16px;color:var(--mut);font-size:14px;letter-spacing:.1em;text-transform:uppercase}
+.lgc label{text-align:left;margin-bottom:10px}.lgc .btn{width:100%}
+.lgc a{color:var(--cyan);cursor:pointer;font-size:14px;display:inline-block;margin-top:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{50%{opacity:.55;transform:scale(.82)}}
+@keyframes scan{from{transform:translateX(-100%)}to{transform:translateX(340%)}}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}
+@keyframes glow{50%{box-shadow:0 0 10px var(--amb)}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head><body>
+<header><div class="logo"><svg class="rx" viewBox="0 0 48 48" aria-hidden="true"><circle class="r1" cx="24" cy="24" r="21" fill="none" stroke="#4FD8FF" stroke-width="2" stroke-dasharray="6 4"/><circle class="r2" cx="24" cy="24" r="15" fill="none" stroke="#E0A81A" stroke-width="2" stroke-dasharray="14 5"/><circle class="r0" cx="24" cy="24" r="7" fill="#BFF3FF"/></svg>ARC</div><p><b>Advanced Resource Control</b>Termoplástica, S.A. · Órdenes, materiales y desperdicios</p><div id="who" hidden><span id="wn"></span><button class="btn s" id="bye">Salir</button></div></header>
+<div id="lg"><form class="card lgc" id="lgf" autocomplete="on"><svg class="rx" viewBox="0 0 48 48" aria-hidden="true"><circle class="r1" cx="24" cy="24" r="21" fill="none" stroke="#4FD8FF" stroke-width="2" stroke-dasharray="6 4"/><circle class="r2" cx="24" cy="24" r="15" fill="none" stroke="#E0A81A" stroke-width="2" stroke-dasharray="14 5"/><circle class="r0" cx="24" cy="24" r="7" fill="#BFF3FF"/></svg><h1>ARC</h1><p>Advanced Resource Control</p>
+<label id="lnl" hidden>Nombre<input id="ln" autocomplete="name"></label>
+<label>Correo<input id="le" type="email" autocomplete="username" required></label>
+<label>Contraseña<input id="lp" type="password" autocomplete="current-password" minlength="6" required></label>
+<div class="al warn" id="lgm" hidden></div>
+<button class="btn p" id="lgb" type="submit">Ingresar</button><a id="lgt">Solicitar acceso</a></form></div>
+<main hidden>
+<nav><button id="t1" class="on">Órdenes</button><button id="t2">Nueva orden</button><button id="t3">Usuarios</button></nav>
+
+<section id="v1">
+ <p id="sync" style="margin:0 0 8px;font-size:13px;color:var(--mut)"></p>
+ <div class="card"><div class="g">
+  <label class="full">Buscar<input id="q" placeholder="Número, producto o estado" inputmode="search"></label>
+  <label class="full">Estado<select id="fe"><option value="">Todos</option><option>Borrador</option><option>Programada</option><option>En producción</option><option>Completa</option></select></label>
+ </div></div>
+ <div class="sc" style="margin-bottom:12px"><button class="btn adm" id="exp">Exportar respaldo</button><button class="btn adm" id="imp0">Importar respaldo</button><input type="file" id="imp" accept=".json,application/json" hidden></div>
+ <div class="hd"><span>Orden</span><span>Producto</span><span>Fechas</span><span>Estado</span><span>Material</span><span>Acciones</span></div>
+ <div id="list"></div>
+</section>
+
+<section id="v2" hidden>
+ <div class="card"><h2 id="ft">Nueva orden <span id="oid"></span></h2>
+  <div class="sc" style="margin-bottom:12px"><button class="btn" data-s="s1">Cargar: Escenario 1 · 20 pts directa</button><button class="btn" data-s="s2">Cargar: Escenario 2 · 25 pts con corte previo</button><button class="btn" data-s="s3">Cargar: Escenario 3 · Liners</button></div>
+  <label>Producto / cliente<input id="producto" placeholder="Ej. Laminación cartón 20 pts"></label>
+  <div class="g3 g" style="margin-top:10px">
+   <label>Fecha de registro<input id="reg" readonly></label>
+   <label>Fecha programada (producción)<input id="prog" type="date"></label>
+   <label>Fecha de entrega<input id="ent" type="date"></label>
+  </div>
+  <span class="chip" id="dch"></span><div id="dchk"></div>
+ </div>
+
+ <div class="two">
+ <div>
+  <div class="card"><h2>Pedido y cartón</h2><div class="g">
+   <label>Área útil (m²)<input id="area" type="number" inputmode="decimal" step="any"></label>
+   <label>Ancho útil final (mm)<input id="util" type="number" inputmode="decimal" step="any"></label>
+   <label>Ancho bobina cartón (mm)<input id="cA" type="number" inputmode="decimal" step="any"></label>
+   <label>Calibre (pts)<input id="pts" type="number" inputmode="decimal" step="any"></label>
+   <label>Gramaje (g/m²)<input id="cG" type="number" inputmode="decimal" step="any"></label>
+   <label>Largo por bobina (m)<input id="cL" type="number" inputmode="decimal" step="any"></label>
+   <label>Peso neto bobina (kg)<input id="cP" type="number" inputmode="decimal" step="any"></label>
+  </div></div>
+  <div class="card"><h2>Film / PE / foil y cera</h2><div class="g">
+   <label>Ancho bobina madre (mm)<input id="fA" type="number" inputmode="decimal" step="any"></label>
+   <label>Largo por rollo (m)<input id="fL" type="number" inputmode="decimal" step="any"></label>
+   <label>Área por rollo (m²)<input id="fS" type="number" inputmode="decimal" step="any"></label>
+   <label>Peso neto N.W. (kg)<input id="fN" type="number" inputmode="decimal" step="any"></label>
+   <label>Corte previo / slitting (mm, 0 = directo)<input id="slit" type="number" inputmode="decimal" step="any"></label>
+   <label>Cera (g/m², estándar 10–20)<input id="cera" type="number" inputmode="decimal" step="any"></label>
+   <label>Peso por bloc de cera (kg)<input id="pb" type="number" inputmode="decimal" step="any"></label>
+   <label>Blocs a pedir (vacío = sugerido)<input id="bp" type="number" inputmode="numeric" step="1" min="0"></label>
+  </div></div>
+  <div class="card"><h2>Liners / tiras</h2><div id="lns"></div><button class="btn" id="addl">Agregar liner</button></div>
+ </div>
+ <div>
+  <div class="card" id="rc"></div>
+  <div class="sc"><button class="btn p" id="save">Guardar orden</button><button class="btn" id="cancel">Cancelar</button></div>
+ </div>
+ </div>
+</section>
+<section id="v3" hidden>
+ <div class="card"><h2>Crear usuario</h2><div class="g">
+  <label>Nombre<input id="un"></label><label>Correo<input id="ue" type="email" autocomplete="off"></label>
+  <label>Contraseña (mín. 6)<input id="up" type="password" autocomplete="new-password"></label>
+  <label>Nivel de acceso<select id="ur"><option value="operador">Usuario: marca En producción / Completa</option><option value="admin">Administrador: acceso total</option></select></label>
+ </div><div class="sc" style="margin-top:12px"><button class="btn p" id="ucr">Crear usuario</button></div><div id="um"></div></div>
+ <div class="card"><h2>Usuarios</h2><div id="ul"></div></div>
+</section>
+</main>
+
+<script>
+/* ===== Utilidades ===== */
+const $=s=>document.querySelector(s);
+const fmt=(n,d=2)=>isFinite(n)?n.toLocaleString("es-GT",{minimumFractionDigits:d,maximumFractionDigits:d}):"—";
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const iso=d=>new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);
+const plus=n=>{const d=new Date();d.setDate(d.getDate()+n);return iso(d)};
+const dlong=s=>new Date(s+"T00:00").toLocaleDateString("es-GT",{weekday:"long",day:"numeric",month:"short"});
+const days=(a,b)=>Math.round((new Date(b+"T00:00")-new Date(a+"T00:00"))/864e5);
+
+/* ===== Escenarios de prueba ===== */
+const K=["producto","prog","ent","area","util","cA","pts","cG","cL","cP","fA","fL","fS","fN","slit","cera","pb","bp"];
+const SC={
+ s1:{producto:"Laminación 20 pts directa (396 mm)",area:2500,util:396,cA:406,pts:20,cG:280,cL:"",cP:"",fA:400,fL:1190.7,fS:476.3,fN:58.5,slit:0,cera:15,liners:[]},
+ s2:{producto:"Laminación 25 pts con corte previo (400→350→346)",area:2500,util:346,cA:362,pts:25,cG:330,cL:1530,cP:179,fA:400,fL:1190.7,fS:476.3,fN:58.5,slit:350,cera:15,liners:[]},
+ s3:{producto:"Liners con margen de corte",area:0,util:0,cA:"",pts:"",cG:"",cL:"",cP:"",fA:"",fL:"",fS:"",fN:"",slit:0,cera:0,liners:[{n:"Liner 54 mm",m:54,g:6},{n:"Liner 46 mm",m:46,g:6}]}
+};
+
+/* ===== Cálculo ===== */
+function calc(v){
+ const n=k=>parseFloat(v[k])||0,A=n("area"),U=n("util");
+ if(!A||!U)return null;
+ const ML=A/(U/1000),r={ML},cA=n("cA"),cG=n("cG");
+ const c=r.c={area:ML*cA/1000};
+ c.kg=c.area*cG/1000;c.mm=cA-U;c.pct=cA?c.mm/cA*100:0;c.wkg=cA?c.kg*c.mm/cA:0;
+ if(n("cL")>0){c.n=Math.ceil(ML/n("cL"));c.sobm=c.n*n("cL")-ML;if(n("cP")>0){c.net=c.n*n("cP");c.sob=c.net-c.kg}}
+ const fA=n("fA"),g=n("fN")/(n("fS")||1),sl=n("slit")>0?n("slit"):fA;
+ const f=r.f={g,area:ML*fA/1000,sl};f.kg=f.area*g;
+ f.s={mm:fA-sl,pct:fA?(fA-sl)/fA*100:0,kg:ML*(fA-sl)/1000*g};
+ f.r={mm:sl-U,pct:sl?(sl-U)/sl*100:0,kg:ML*(sl-U)/1000*g};
+ if(n("fL")>0){f.n=Math.ceil(ML/n("fL"));f.m=f.n*n("fL");f.sob=f.n*n("fN")-f.kg}
+ /* Cera: siempre sobre el ancho/área ÚTIL, no sobre cartón ni film */
+ const cg=n("cera"),pb=n("pb")>0?n("pb"):4.8,kgAt=x=>A*x/1000,w=r.w={ancho:U,area:A,kg:kgAt(cg),pb};
+ w.ex=w.kg/pb;w.ceil=Math.ceil(w.ex);w.mn=kgAt(10);w.mx=kgAt(20);
+ w.sug=Math.max(w.ceil,Math.ceil(kgAt(15)/pb));
+ w.ped=n("bp")>0?Math.round(n("bp")):w.sug;w.keq=w.ped*pb;w.dif=w.keq-w.kg;
+ r.tot=c.kg+f.kg+w.kg;r.waste=c.wkg+f.s.kg+f.r.kg;
+ return r;
+}
+
+/* ===== Validaciones ===== */
+function checkDates(v,reg){
+ const o=[];
+ if(!v.prog||!v.ent){o.push(["bad","Falta la fecha programada o la fecha de entrega."]);return o}
+ if(v.ent<v.prog)o.push(["bad","La entrega ("+dlong(v.ent)+") es anterior a la fecha programada ("+dlong(v.prog)+"). Corrige antes de guardar."]);
+ if(v.prog<reg)o.push(["bad","La fecha programada es anterior a la de registro. Verifica que no sea un error de captura."]);
+ else if(v.prog===reg)o.push(["warn","La orden está programada para hoy. Confirma que no corresponde a mañana."]);
+ if(v.prog>reg&&days(reg,v.prog)>30)o.push(["warn","La producción está a más de 30 días del registro."]);
+ return o;
+}
+function checkCalc(v,r,L){
+ const o=[],n=k=>parseFloat(v[k])||0;
+ if(r&&v.cera!==""&&(n("cera")<10||n("cera")>20))o.push(["warn","Fuera del rango estándar de 10–20 g/m²; revisar calibración."]);
+ if(r&&r.w.dif<-1e-9)o.push(["warn","Los blocs a pedir no cubren los kilos de cera requeridos."]);
+ if(r){
+  if(n("cA")<n("util"))o.push(["bad","El ancho de cartón es menor al ancho útil."]);
+  if(r.f.sl<n("util"))o.push(["bad","El film (tras el corte previo) es menor al ancho útil."]);
+  if(n("slit")>n("fA"))o.push(["bad","El corte previo supera el ancho de la bobina madre."]);
+  if(!o.length)o.push(["ok","Cálculo listo: material comprometido para esta orden."]);
+ }
+ L.forEach(l=>{if(!(+l.m>0))o.push(["bad","Liner sin medida final."]);else if(+l.g<6)o.push(["warn","«"+esc(l.n||"Liner")+"»: el margen es menor a 6 mm recomendados para cortar bien."])});
+ return o;
+}
+
+/* ===== Estado ===== */
+let S=(()=>{try{return JSON.parse(localStorage.getItem("arc.v1"))||{c:0,o:[]}}catch(e){return{c:0,o:[]}}})();
+const persist=()=>{try{localStorage.setItem("arc.v1",JSON.stringify(S))}catch(e){}};
+let editing=null,liners=[],regDate=iso(new Date());
+
+/* ===== Vista de captura ===== */
+const al=a=>a.map(x=>'<div class="al '+x[0]+'">'+x[1]+"</div>").join("");
+const row=(l,v,w)=>"<div><dt>"+l+"</dt><dd"+(w?' class="w"':"")+">"+v+"</dd></div>";
+function vals(){const v={};K.forEach(k=>v[k]=$("#"+k).value);return v}
+function setVals(v){K.forEach(k=>$("#"+k).value=v[k]??(k==="pb"?4.8:""));liners=(v.liners||[]).map(l=>({...l}));drawLiners();update()}
+function drawLiners(){
+ $("#lns").innerHTML=liners.length?liners.map((l,i)=>'<div class="lr"><label>Ítem<input data-i="'+i+'" data-f="n" value="'+esc(l.n)+'"></label><label>Medida (mm)<input data-i="'+i+'" data-f="m" type="number" inputmode="decimal" value="'+l.m+'"></label><label>Margen (mm)<input data-i="'+i+'" data-f="g" type="number" inputmode="decimal" value="'+l.g+'"></label><button class="btn s" data-d="'+i+'" aria-label="Quitar">Quitar</button></div><div class="al ok" style="margin-top:-2px">Tira: <b>'+fmt((+l.m||0)+(+l.g||0),0)+" mm</b> · desperdicio "+fmt((+l.m||0)+(+l.g||0)?(+l.g||0)/((+l.m||0)+(+l.g||0))*100:0,1)+" %</div>").join(""):'<p class="empty">Sin liners. Agrega medida final y margen de corte (6 mm por defecto).</p>';
+}
+function update(){
+ const v=vals(),r=calc(v),ds=checkDates(v,regDate),cc=checkCalc(v,r,liners);
+ $("#reg").value=regDate;
+ {const c=parseFloat(v.cera);$("#cera").style.borderColor=c>0&&(c<10||c>20)?"#D97706":""}
+ $("#dch").textContent=v.prog?"Programada: "+dlong(v.prog)+(v.prog===regDate?" (hoy)":days(regDate,v.prog)===1?" (mañana)":""):"";
+ $("#dchk").innerHTML=al(ds);
+ let h="";
+ if(r){
+  h+='<div class="kp"><div><small>Metros lineales</small><b data-k="ML" data-v="'+r.ML+'">'+fmt(r.ML)+'</b><em>m</em></div><div><small>Kilos a solicitar</small><b data-k="tot" data-v="'+r.tot+'">'+fmt(r.tot)+'</b><em>kg</em></div><div><small>Desperdicio total</small><b data-k="waste" data-v="'+r.waste+'">'+fmt(r.waste)+'</b><em>kg</em></div></div>';
+  h+="<h3>Cartón</h3><dl>"+row("Área bruta",fmt(r.c.area)+" m²")+row("Kilos brutos",fmt(r.c.kg)+" kg")+row("Refile lateral",fmt(r.c.mm,0)+" mm · "+fmt(r.c.pct)+" % · "+fmt(r.c.wkg)+" kg",1);
+  if(r.c.n)h+=row("Bobinas a despachar",r.c.n)+(r.c.net?row("Peso despachado",fmt(r.c.net)+" kg")+row("Sobrante estimado",fmt(r.c.sob)+" kg · "+fmt(r.c.sobm,0)+" m"):row("Sobrante estimado",fmt(r.c.sobm,0)+" m"));
+  h+="</dl><h3>Film / PE / foil</h3><dl>"+row("Gramaje derivado",fmt(r.f.g,5)+" kg/m²")+row("Área bruta (bobina madre)",fmt(r.f.area)+" m²")+row("Kilos brutos",fmt(r.f.kg)+" kg");
+  if(r.f.s.mm>0)h+=row("Desperdicio corte previo",fmt(r.f.s.mm,0)+" mm · "+fmt(r.f.s.pct)+" % · "+fmt(r.f.s.kg)+" kg",1);
+  h+=row("Desperdicio refile final",fmt(r.f.r.mm,0)+" mm · "+fmt(r.f.r.pct)+" % · "+fmt(r.f.r.kg)+" kg",1);
+  if(r.f.n)h+=row("Rollos a pedir",r.f.n+" ("+fmt(r.f.m,1)+" m)")+row("Peso neto despachado",fmt(r.f.n*(parseFloat(v.fN)||0))+" kg")+row("Sobrante estimado",fmt(r.f.sob)+" kg");
+  const w=r.w,p=parseFloat(v.cera)||0;
+  h+="</dl><h3>Cera sobre ancho útil</h3><dl>"+row("Ancho útil / área útil",fmt(w.ancho,0)+" mm · "+fmt(w.area)+" m²")+row("Kilos requeridos ("+fmt(p,1)+" g/m²)",fmt(w.kg)+" kg")+row("Referencia mínimo 10 g/m²",fmt(w.mn)+" kg · "+fmt(w.mn/w.pb)+" blocs")+row("Referencia configurado",fmt(w.kg)+" kg · "+fmt(w.ex)+" blocs")+row("Referencia máximo 20 g/m²",fmt(w.mx)+" kg · "+fmt(w.mx/w.pb)+" blocs")+"</dl><h3>Blocs de cera ("+fmt(w.pb,1)+" kg c/u)</h3><dl>"+row("Blocs exactos",fmt(w.ex))+row("Redondeo hacia arriba",w.ceil)+row("Promedio sugerido (rango 10–20, mín. el exacto)",w.sug)+row("Blocs a pedir",w.ped)+row("Kilos equivalentes",fmt(w.keq)+" kg")+row(w.dif<0?"Faltante":"Sobrante",fmt(Math.abs(w.dif))+" kg",w.dif<0)+"</dl>";
+ }else h+='<p class="empty">Ingresa área útil y ancho útil, o carga un escenario de prueba, para ver el cálculo.</p>';
+ if(liners.length)h+="<h3>Solicitud de liners / tiras</h3><dl>"+liners.map(l=>row(esc(l.n||"Liner")+" · "+fmt(+l.m||0,0)+" + "+fmt(+l.g||0,0)+" mm","Tira "+fmt((+l.m||0)+(+l.g||0),0)+" mm")).join("")+"</dl>";
+ $("#rc").innerHTML="<h2>Requisición de materiales</h2>"+h+al(cc);countUp();
+ $("#save").disabled=[...ds,...cc].some(x=>x[0]==="bad")||(!r&&!liners.length);
+ $("#save").textContent=editing?"Actualizar orden":"Guardar orden";
+}
+
+/* ===== Lista de órdenes ===== */
+const EST=["Borrador","Programada","En producción","Completa"];
+function drawList(){
+ const q=$("#q").value.toLowerCase(),fe=$("#fe").value;
+ const a=S.o.filter(o=>(!fe||o.est===fe)&&(!q||(o.id+" "+o.v.producto+" "+o.est).toLowerCase().includes(q))).slice().reverse();
+ $("#list").innerHTML=a.length?a.map(o=>{
+  const r=calc(o.v),ds=checkDates(o.v,o.reg);
+  return '<div class="row"><div class="id">'+o.id+"</div><div><b>"+esc(o.v.producto||"Sin nombre")+"</b></div><div class=\"ds\">Registro "+o.reg+"<br>Producción "+o.v.prog+" · Entrega "+o.v.ent+(ds.some(x=>x[0]==="warn")?' <span class="bd EnProduccion">Revisar fecha</span>':"")+'</div><div><span class="bd '+o.est.replace(/\s|ó/g,m=>m==="ó"?"o":"")+'">'+o.est+"</span></div><div class=\"ds\">"+(r?fmt(r.tot)+" kg · "+fmt(r.ML,0)+" m":(o.liners||o.v.liners||[]).length+" liners")+'</div><div class="ac"><select data-e="'+o.id+'" aria-label="Estado">'+opts(o)+'</select><button class="btn s" data-o="'+o.id+'">Abrir</button>'+(isAdmin()?'<button class="btn s" data-x="'+o.id+'">Borrar</button>':"")+'</div></div>';
+ }).join(""):'<div class="card empty">No hay órdenes que coincidan. Crea la primera en «Nueva orden».</div>';
+}
+
+/* ===== Navegación y eventos ===== */
+function tab(n){[1,2,3].forEach(i=>{$("#v"+i).hidden=n!==i;$("#t"+i).classList.toggle("on",n===i)});if(n===1)drawList();if(n===3)drawUsers()}
+function nueva(){editing=null;lock(false);regDate=iso(new Date());$("#oid").textContent="· ORD-"+String(S.c+1).padStart(3,"0");setVals({...SC.s1,producto:"",area:"",util:"",cA:"",pts:"",cG:"",cL:"",cP:"",slit:0,prog:plus(1),ent:plus(3),liners:[]});tab(2)}
+$("#t1").onclick=()=>tab(1);$("#t2").onclick=nueva;
+$("#q").oninput=drawList;$("#fe").onchange=drawList;
+$("#v2").addEventListener("input",e=>{
+ const t=e.target;if(t.dataset.i!==undefined){liners[+t.dataset.i][t.dataset.f]=t.dataset.f==="n"?t.value:parseFloat(t.value)||0;
+  const lr=t.closest(".lr").nextElementSibling;const l=liners[+t.dataset.i],tira=(+l.m||0)+(+l.g||0);lr.innerHTML="Tira: <b>"+fmt(tira,0)+" mm</b> · desperdicio "+fmt(tira?(+l.g||0)/tira*100:0,1)+" %"}
+ update()});
+$("#v2").addEventListener("click",e=>{
+ const t=e.target;
+ if(t.dataset.s){const s=SC[t.dataset.s];setVals({...s,prog:plus(1),ent:plus(3)})}
+ if(t.dataset.d!==undefined){liners.splice(+t.dataset.d,1);drawLiners();update()}
+});
+$("#addl").onclick=()=>{liners.push({n:"Liner "+(liners.length+1),m:54,g:6});drawLiners();update()};
+$("#cancel").onclick=()=>tab(1);
+$("#save").onclick=async()=>{
+ const v=vals();v.liners=liners.map(l=>({...l}));let o;
+ if(editing){o=S.o.find(x=>x.id===editing);o.v=v;persist();await put(o)}
+ else{await pull();S.c=Math.max(S.c,0,...S.o.map(x=>+x.id.slice(4)));
+  for(let k=0;k<6;k++){S.c++;o={id:"ORD-"+String(S.c).padStart(3,"0"),reg:regDate,est:"Borrador",v};if(await create(o))break}
+  S.o.push(o);persist()}
+ tab(1)};
+$("#list").addEventListener("click",e=>{
+ const t=e.target;
+ if(t.dataset.o){const o=S.o.find(x=>x.id===t.dataset.o);editing=o.id;regDate=o.reg;$("#oid").textContent="· "+o.id;setVals({...o.v,liners:o.v.liners});lock(!isAdmin());tab(2)}
+ if(t.dataset.x){S.o=S.o.filter(x=>x.id!==t.dataset.x);persist();del(t.dataset.x);drawList()}
+});
+$("#list").addEventListener("change",e=>{const id=e.target.dataset.e;if(id){const o=S.o.find(x=>x.id===id);o.est=e.target.value;persist();put(o);drawList()}});
+
+$("#exp").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:"application/json"}));a.download="arc-respaldo-"+iso(new Date())+".json";a.click()};
+$("#imp0").onclick=()=>$("#imp").click();
+$("#imp").onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);if(Array.isArray(d.o)&&typeof d.c==="number"){S=d;persist();S.o.forEach(upsert);drawList()}}catch(_){}})};
+
+/* ===== Acceso, roles y nube (Supabase Auth + REST) ===== */
+const URL0="https://dmpwzxfkximymopprmzn.supabase.co",KEY="sb_publishable_iXI8fJoIcgddw4hqj2Nfsw_jPQE8zyl";
+let SES=null,ME=null,poll=null,modo="in";
+try{SES=JSON.parse(localStorage.getItem("arc.s"))}catch(e){}
+const isAdmin=()=>!!ME&&ME.rol==="admin";
+const say=t=>{$("#sync").textContent=t};
+async function auth(p,b){const r=await fetch(URL0+"/auth/v1/"+p,{method:"POST",headers:{apikey:KEY,"Content-Type":"application/json"},body:JSON.stringify(b)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.msg||j.error_description||j.message||"No se pudo completar la acción");return j}
+const keep=j=>{SES={at:j.access_token,rt:j.refresh_token,exp:Date.now()+(j.expires_in-60)*1e3,uid:j.user.id};try{localStorage.setItem("arc.s",JSON.stringify(SES))}catch(e){}};
+async function rest(p,o={}){
+ if(SES&&Date.now()>SES.exp){try{keep(await auth("token?grant_type=refresh_token",{refresh_token:SES.rt}))}catch(e){out();throw e}}
+ return fetch(URL0+"/rest/v1/"+p,{...o,headers:{apikey:KEY,"Content-Type":"application/json",...(SES?{Authorization:"Bearer "+SES.at}:{}),...(o.headers||{})}})}
+
+/* Órdenes en la nube */
+const norm=o=>{if(o.est==="Cerrada")o.est="Completa";return o};
+const J=o=>JSON.stringify({id:o.id,data:o});
+async function pull(){if(!ME)return;try{const r=await rest("arc_orders?select=id,data");if(r.status===401)return out();if(!r.ok)throw 0;S.o=(await r.json()).map(x=>norm(x.data)).sort((a,b)=>a.id<b.id?-1:1);S.c=Math.max(S.c,0,...S.o.map(o=>+o.id.slice(4)));persist();say("Conectado · "+S.o.length+" órdenes")}catch(e){say("Sin conexión; se muestran los datos de este equipo")}}
+async function create(o){try{const r=await rest("arc_orders",{method:"POST",headers:{Prefer:"return=minimal"},body:J(o)});if(r.status===409)return false;if(!r.ok)say("No se pudo guardar: revisa permisos o conexión")}catch(e){say("No se pudo guardar en la nube")}return true}
+async function put(o){try{const r=await rest("arc_orders?id=eq."+o.id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({data:o})});if(!r.ok){say("Acción no permitida o sin conexión");pull().then(drawList)}}catch(e){say("No se pudo guardar en la nube")}}
+async function upsert(o){try{await rest("arc_orders",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:J(o)})}catch(e){}}
+async function del(id){try{const r=await rest("arc_orders?id=eq."+id,{method:"DELETE"});if(!r.ok)say("No tienes permiso para borrar")}catch(e){}}
+
+/* Permisos en pantalla */
+const opts=o=>{const l=isAdmin()?EST:["En producción","Completa"];return(l.includes(o.est)?"":'<option selected disabled>'+o.est+"</option>")+l.map(e=>"<option"+(e===o.est?" selected":"")+">"+e+"</option>").join("")};
+function lock(on){document.querySelectorAll("#v2 input,#v2 select,#v2 .btn:not(#cancel)").forEach(e=>e.disabled=on);$("#save").hidden=on;$("#cancel").textContent=on?"Volver":"Cancelar"}
+
+/* Animación de cifras de los indicadores */
+const kv={};
+function countUp(){document.querySelectorAll(".kp b[data-k]").forEach(b=>{const k=b.dataset.k,to=+b.dataset.v,from=kv[k]||0;kv[k]=to;
+ if(from===to||matchMedia("(prefers-reduced-motion:reduce)").matches){b.textContent=fmt(to);return}
+ const t0=performance.now();(function f(t){const p=Math.min(1,(t-t0)/450);b.textContent=fmt(from+(to-from)*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(f)})(t0)})}
+
+/* Inicio y cierre de sesión */
+const lgm=(t,c)=>{const m=$("#lgm");m.hidden=!t;m.className="al "+(c||"warn");m.textContent=t||""};
+function showLogin(){$("#lg").hidden=false;$("main").hidden=true;$("#who").hidden=true}
+function out(keepMsg){SES=ME=null;clearInterval(poll);try{localStorage.removeItem("arc.s");localStorage.removeItem("arc.v1")}catch(e){}S={c:0,o:[]};showLogin();if(!keepMsg)lgm("")}
+async function boot(){
+ const r=await rest("profiles?id=eq."+SES.uid+"&select=*");let why="";if(r.ok){ME=(await r.json())[0]||null;if(!ME)why=" No existe perfil para tu usuario (id "+SES.uid+")."}else{ME=null;why=" Error "+r.status+": "+(await r.text()).slice(0,180)}
+ if(!ME||!ME.activo){const m=ME?"Tu cuenta está pendiente de activación por un administrador.":"No se pudo cargar tu perfil."+why;out(true);lgm(m);return}
+ $("#lg").hidden=true;$("main").hidden=false;$("#who").hidden=false;$("#lp").value="";
+ $("#wn").textContent=(ME.nombre||ME.email)+" · "+(isAdmin()?"Administrador":"Usuario");
+ $("#t2").hidden=$("#t3").hidden=!isAdmin();document.body.classList.toggle("op",!isAdmin());
+ tab(1);await pull();drawList();clearInterval(poll);poll=setInterval(()=>{if(!$("#v1").hidden)pull().then(drawList)},10000)}
+$("#bye").onclick=()=>out();
+$("#lgt").onclick=()=>{modo=modo==="in"?"up":"in";$("#lnl").hidden=modo==="in";$("#lgb").textContent=modo==="in"?"Ingresar":"Enviar solicitud";$("#lgt").textContent=modo==="in"?"Solicitar acceso":"Ya tengo cuenta";lgm("")};
+$("#lgf").onsubmit=async e=>{e.preventDefault();lgm("");$("#lgb").disabled=true;const em=$("#le").value.trim(),pw=$("#lp").value;
+ try{
+  if(modo==="in"){keep(await auth("token?grant_type=password",{email:em,password:pw}));await boot()}
+  else{await auth("signup",{email:em,password:pw,data:{nombre:$("#ln").value.trim()||em}});lgm("Solicitud enviada. Un administrador debe activar tu cuenta (si el proyecto pide confirmar el correo, revisa tu bandeja).","ok")}
+ }catch(x){lgm(/invalid login/i.test(x.message)?"Correo o contraseña incorrectos":x.message)}
+ $("#lgb").disabled=false};
+
+/* Administración de usuarios (solo admin; la base de datos también lo exige) */
+const um=(t,c)=>{$("#um").innerHTML=t?'<div class="al '+c+'">'+t+"</div>":""};
+async function patchU(id,b){const r=await rest("profiles?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify(b)});return r.ok&&(await r.json()).length>0}
+async function drawUsers(){
+ const r=await rest("profiles?select=*&order=creado"),a=r.ok?await r.json():[];
+ $("#ul").innerHTML=a.map(u=>{const me=u.id===SES.uid?" disabled":"";return'<div class="ur"><b>'+esc(u.nombre||u.email)+'<br><small style="color:var(--mut);font-weight:500">'+esc(u.email)+'</small></b><select data-ur="'+u.id+'" aria-label="Nivel"'+me+'><option value="operador"'+(u.rol==="operador"?" selected":"")+'>Usuario</option><option value="admin"'+(u.rol==="admin"?" selected":"")+'>Administrador</option></select><button class="btn s" data-ua="'+u.id+'" data-a="'+(u.activo?0:1)+'"'+me+'>'+(u.activo?"Desactivar":"Activar")+'</button><span class="bd'+(u.activo?"":" Borrador")+'">'+(u.activo?"Activo":"Pendiente")+"</span></div>"}).join("")||'<p class="empty">Sin usuarios.</p>'}
+$("#ul").addEventListener("change",async e=>{const id=e.target.dataset.ur;if(id){await patchU(id,{rol:e.target.value});drawUsers()}});
+$("#ul").addEventListener("click",async e=>{const id=e.target.dataset.ua;if(id){await patchU(id,{activo:e.target.dataset.a==="1"});drawUsers()}});
+$("#t3").onclick=()=>tab(3);
+$("#ucr").onclick=async()=>{
+ const n=$("#un").value.trim(),em=$("#ue").value.trim(),pw=$("#up").value;
+ if(!em||pw.length<6)return um("Escribe un correo y una contraseña de al menos 6 caracteres.","warn");
+ $("#ucr").disabled=true;um("");
+ try{const j=await auth("signup",{email:em,password:pw,data:{nombre:n||em}});
+  const ok=await patchU((j.user||j).id,{nombre:n||em,rol:$("#ur").value,activo:true});
+  um(ok?"Usuario creado y activado.":"La cuenta se creó pero no se pudo activar; revísala en la lista.",ok?"ok":"warn");
+  if(ok)["un","ue","up"].forEach(k=>$("#"+k).value="");
+ }catch(x){um(x.message,"bad")}
+ $("#ucr").disabled=false;drawUsers()};
+
+/* ===== Inicio ===== */
+if(SES)boot().catch(()=>showLogin());else showLogin();
+</script>
+</body></html>
