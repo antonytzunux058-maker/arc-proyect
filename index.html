@@ -107,6 +107,7 @@ input:disabled,select:disabled{opacity:.75}
 .al{border-left:3px solid currentColor;animation:pop .3s both}
 main section:not([hidden]){animation:rise .35s both}
 .bd.Completa{background:var(--okbg);color:var(--ok)}.bd.EnProduccion{animation:glow 2s ease-in-out infinite}
+.bd.Parcial{background:var(--ambbg);color:var(--amb)}
 body.op .adm{display:none}
 [hidden]{display:none!important}
 .ur{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line)}.ur b{flex:1 1 190px}.ur select{width:auto;min-height:38px;margin:0}
@@ -134,13 +135,13 @@ body.op .adm{display:none}
 <div class="al warn" id="lgm" hidden></div>
 <button class="btn p" id="lgb" type="submit">Ingresar</button><a id="lgt">Solicitar acceso</a></form></div>
 <main hidden>
-<nav><button id="t1" class="on">Órdenes</button><button id="t2">Nueva orden</button><button id="t3">Usuarios</button></nav>
+<nav><button id="t1" class="on">Órdenes</button><button id="t2">Nueva orden</button><button id="t3">Usuarios</button><button id="t5">Cierres</button></nav>
 
 <section id="v1">
  <p id="sync" style="margin:0 0 8px;font-size:13px;color:var(--mut)"></p>
  <div class="card"><div class="g">
   <label class="full">Buscar<input id="q" placeholder="Número, producto o estado" inputmode="search"></label>
-  <label class="full">Estado<select id="fe"><option value="">Todos</option><option>Borrador</option><option>Programada</option><option>En producción</option><option>Completa</option></select></label>
+  <label class="full">Estado<select id="fe"><option value="">Todos</option><option>Borrador</option><option>Programada</option><option>En producción</option><option>Parcial</option><option>Completa</option></select></label>
  </div></div>
  <div class="sc" style="margin-bottom:12px"><button class="btn adm" id="exp">Exportar respaldo</button><button class="btn adm" id="imp0">Importar respaldo</button><input type="file" id="imp" accept=".json,application/json" hidden></div>
  <div class="hd"><span>Orden</span><span>Producto</span><span>Fechas</span><span>Estado</span><span>Material</span><span>Acciones</span></div>
@@ -192,10 +193,19 @@ body.op .adm{display:none}
  <div class="card"><h2>Crear usuario</h2><div class="g">
   <label>Nombre<input id="un"></label><label>Correo<input id="ue" type="email" autocomplete="off"></label>
   <label>Contraseña (mín. 6)<input id="up" type="password" autocomplete="new-password"></label>
-  <label>Nivel de acceso<select id="ur"><option value="operador">Usuario: marca En producción / Completa</option><option value="admin">Administrador: acceso total</option></select></label>
+  <label>Nivel de acceso<select id="ur"><option value="operador">Operario: solo cierra órdenes de su área</option><option value="gerencia">Gerencia: ve y edita todo, sin usuarios</option><option value="admin">Administrador: acceso total</option></select></label><label>Área (operarios)<select id="ua"><option>Laminadora Liner</option><option>Liner</option></select></label>
  </div><div class="sc" style="margin-top:12px"><button class="btn p" id="ucr">Crear usuario</button></div><div id="um"></div></div>
  <div class="card"><h2>Usuarios</h2><div id="ul"></div></div>
 </section>
+<section id="v4" hidden><div class="card"><h2>Cierre de orden</h2>
+ <label>Orden<select id="cord"></select></label><div id="ci"></div>
+ <div class="g" style="margin-top:10px"><label class="full">Operario que cierra<input id="co"></label>
+  <label>Producto terminado (m²)<input id="cm" type="number" inputmode="decimal" step="any"></label>
+  <label>Film a devolver (kg)<input id="cf" type="number" inputmode="decimal" step="any"></label>
+  <label>Cartón a devolver (kg)<input id="cc" type="number" inputmode="decimal" step="any"></label>
+  <label>Cera a devolver (kg)<input id="cw" type="number" inputmode="decimal" step="any"></label></div>
+ <div id="cr"></div><div class="sc" style="margin-top:12px"><button class="btn p" id="csave">Guardar cierre</button><button class="btn" id="ccancel">Volver</button></div></div></section>
+<section id="v5" hidden><div class="card" id="rs"></div></section>
 </main>
 
 <script>
@@ -300,18 +310,16 @@ function update(){
 }
 
 /* ===== Lista de órdenes ===== */
-const EST=["Borrador","Programada","En producción","Completa"];
+const EST=["Borrador","Programada","En producción","Parcial","Completa"];
 function drawList(){
+ if(ME&&!canE()&&ME.area!=="Laminadora Liner"){$("#list").innerHTML='<div class="card empty">Tu área ('+esc(ME.area||"sin asignar")+') aún no está habilitada. Avisa al administrador.</div>';return}
  const q=$("#q").value.toLowerCase(),fe=$("#fe").value;
  const a=S.o.filter(o=>(!fe||o.est===fe)&&(!q||(o.id+" "+o.v.producto+" "+o.est).toLowerCase().includes(q))).slice().reverse();
- $("#list").innerHTML=a.length?a.map(o=>{
-  const r=calc(o.v),ds=checkDates(o.v,o.reg);
-  return '<div class="row"><div class="id">'+o.id+"</div><div><b>"+esc(o.v.producto||"Sin nombre")+"</b></div><div class=\"ds\">Registro "+o.reg+"<br>Producción "+o.v.prog+" · Entrega "+o.v.ent+(ds.some(x=>x[0]==="warn")?' <span class="bd EnProduccion">Revisar fecha</span>':"")+'</div><div><span class="bd '+o.est.replace(/\s|ó/g,m=>m==="ó"?"o":"")+'">'+o.est+"</span></div><div class=\"ds\">"+(r?fmt(r.tot)+" kg · "+fmt(r.ML,0)+" m":(o.liners||o.v.liners||[]).length+" liners")+'</div><div class="ac"><select data-e="'+o.id+'" aria-label="Estado">'+opts(o)+'</select><button class="btn s" data-o="'+o.id+'">Abrir</button>'+(isAdmin()?'<button class="btn s" data-x="'+o.id+'">Borrar</button>':"")+'</div></div>';
- }).join(""):'<div class="card empty">No hay órdenes que coincidan. Crea la primera en «Nueva orden».</div>';
-}
+ $("#list").innerHTML=a.length?a.map(o=>{const ds=checkDates(o.v,o.reg),ma=asig(o);
+  return'<div class="row"><div class="id">'+o.id+'</div><div><b>'+esc(o.v.producto||"Sin nombre")+'</b></div><div class="ds">Registro '+o.reg+'<br>Producción '+o.v.prog+' · Entrega '+o.v.ent+(ds.some(x=>x[0]==="warn")?' <span class="bd EnProduccion">Revisar fecha</span>':"")+'</div><div><span class="bd '+o.est.replace(/\s|ó/g,m=>m==="ó"?"o":"")+'">'+o.est+'</span></div><div class="ds">'+(ma?fmt(ma.t)+" kg asignados · meta "+fmt(+o.v.area,0)+" m²":"—")+'</div><div class="ac">'+acts(o)+"</div></div>"}).join(""):'<div class="card empty">No hay órdenes para mostrar.</div>'}
 
 /* ===== Navegación y eventos ===== */
-function tab(n){[1,2,3].forEach(i=>{$("#v"+i).hidden=n!==i;$("#t"+i).classList.toggle("on",n===i)});if(n===1)drawList();if(n===3)drawUsers()}
+function tab(n){[1,2,3,4,5].forEach(i=>{$("#v"+i).hidden=n!==i;const b=$("#t"+i);if(b)b.classList.toggle("on",n===i)});if(n===1)drawList();if(n===3)drawUsers();if(n===5)drawRes()}
 function nueva(){editing=null;lock(false);regDate=iso(new Date());$("#oid").textContent="· ORD-"+String(S.c+1).padStart(3,"0");setVals({...SC.s1,producto:"",area:"",util:"",cA:"",pts:"",cG:"",cL:"",cP:"",slit:0,prog:plus(1),ent:plus(3),liners:[]});tab(2)}
 $("#t1").onclick=()=>tab(1);$("#t2").onclick=nueva;
 $("#q").oninput=drawList;$("#fe").onchange=drawList;
@@ -335,7 +343,7 @@ $("#save").onclick=async()=>{
  tab(1)};
 $("#list").addEventListener("click",e=>{
  const t=e.target;
- if(t.dataset.o){const o=S.o.find(x=>x.id===t.dataset.o);editing=o.id;regDate=o.reg;$("#oid").textContent="· "+o.id;setVals({...o.v,liners:o.v.liners});lock(!isAdmin());tab(2)}
+ if(t.dataset.o){const o=S.o.find(x=>x.id===t.dataset.o);editing=o.id;regDate=o.reg;$("#oid").textContent="· "+o.id;setVals({...o.v,liners:o.v.liners});lock(!canE());tab(2)}
  if(t.dataset.x){S.o=S.o.filter(x=>x.id!==t.dataset.x);persist();del(t.dataset.x);drawList()}
 });
 $("#list").addEventListener("change",e=>{const id=e.target.dataset.e;if(id){const o=S.o.find(x=>x.id===id);o.est=e.target.value;persist();put(o);drawList()}});
@@ -359,14 +367,14 @@ async function rest(p,o={}){
 /* Órdenes en la nube */
 const norm=o=>{if(o.est==="Cerrada")o.est="Completa";return o};
 const J=o=>JSON.stringify({id:o.id,data:o});
-async function pull(){if(!ME)return;try{const r=await rest("arc_orders?select=id,data");if(r.status===401)return out();if(!r.ok)throw 0;S.o=(await r.json()).map(x=>norm(x.data)).sort((a,b)=>a.id<b.id?-1:1);S.c=Math.max(S.c,0,...S.o.map(o=>+o.id.slice(4)));persist();say("Conectado · "+S.o.length+" órdenes")}catch(e){say("Sin conexión; se muestran los datos de este equipo")}}
+async function pull(){if(!ME)return;try{const r=await rest("arc_orders?select=id,data");if(r.status===401)return out();if(!r.ok)throw 0;S.o=(await r.json()).map(x=>norm(x.data)).sort((a,b)=>a.id<b.id?-1:1);S.c=Math.max(S.c,0,...S.o.map(o=>+o.id.slice(4)));await pullC();persist();say("Conectado · "+S.o.length+" órdenes")}catch(e){say("Sin conexión; se muestran los datos de este equipo")}}
 async function create(o){try{const r=await rest("arc_orders",{method:"POST",headers:{Prefer:"return=minimal"},body:J(o)});if(r.status===409)return false;if(!r.ok)say("No se pudo guardar: revisa permisos o conexión")}catch(e){say("No se pudo guardar en la nube")}return true}
 async function put(o){try{const r=await rest("arc_orders?id=eq."+o.id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({data:o})});if(!r.ok){say("Acción no permitida o sin conexión");pull().then(drawList)}}catch(e){say("No se pudo guardar en la nube")}}
 async function upsert(o){try{await rest("arc_orders",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:J(o)})}catch(e){}}
 async function del(id){try{const r=await rest("arc_orders?id=eq."+id,{method:"DELETE"});if(!r.ok)say("No tienes permiso para borrar")}catch(e){}}
 
 /* Permisos en pantalla */
-const opts=o=>{const l=isAdmin()?EST:["En producción","Completa"];return(l.includes(o.est)?"":'<option selected disabled>'+o.est+"</option>")+l.map(e=>"<option"+(e===o.est?" selected":"")+">"+e+"</option>").join("")};
+const opts=o=>{const l=EST;return(l.includes(o.est)?"":'<option selected disabled>'+o.est+"</option>")+l.map(e=>"<option"+(e===o.est?" selected":"")+">"+e+"</option>").join("")};
 function lock(on){$("#ft").firstChild.textContent=on?"Detalle de orden ":editing?"Editar orden ":"Nueva orden ";document.querySelectorAll("#v2 input,#v2 select,#v2 .btn:not(#cancel)").forEach(e=>e.disabled=on);$("#save").hidden=on;$("#cancel").textContent=on?"Volver":"Cancelar"}
 
 /* Animación de cifras de los indicadores */
@@ -383,8 +391,8 @@ async function boot(){
  const r=await rest("profiles?id=eq."+SES.uid+"&select=*");let why="";if(r.ok){ME=(await r.json())[0]||null;if(!ME)why=" No existe perfil para tu usuario (id "+SES.uid+")."}else{ME=null;why=" Error "+r.status+": "+(await r.text()).slice(0,180)}
  if(!ME||!ME.activo){const m=ME?"Tu cuenta está pendiente de activación por un administrador.":"No se pudo cargar tu perfil."+why;out(true);lgm(m);return}
  $("#lg").hidden=true;$("main").hidden=false;$("#who").hidden=false;$("#lp").value="";
- $("#wn").textContent=(ME.nombre||ME.email)+" · "+(isAdmin()?"Administrador":"Usuario");
- $("#t2").hidden=$("#t3").hidden=!isAdmin();document.body.classList.toggle("op",!isAdmin());
+ $("#wn").textContent=(ME.nombre||ME.email)+" · "+ROL[ME.rol]+(ME.rol==="operador"&&ME.area?" · "+ME.area:"");
+ $("#t2").hidden=$("#t5").hidden=!canE();$("#t3").hidden=!isAdmin();document.body.classList.toggle("op",!canE());
  tab(1);await pull();drawList();clearInterval(poll);poll=setInterval(()=>{if(!$("#v1").hidden)pull().then(drawList)},10000)}
 $("#bye").onclick=()=>out();
 $("#lgt").onclick=()=>{modo=modo==="in"?"up":"in";$("#lnl").hidden=modo==="in";$("#lgb").textContent=modo==="in"?"Ingresar":"Enviar solicitud";$("#lgt").textContent=modo==="in"?"Solicitar acceso":"Ya tengo cuenta";lgm("")};
@@ -398,22 +406,83 @@ $("#lgf").onsubmit=async e=>{e.preventDefault();lgm("");$("#lgb").disabled=true;
 /* Administración de usuarios (solo admin; la base de datos también lo exige) */
 const um=(t,c)=>{$("#um").innerHTML=t?'<div class="al '+c+'">'+t+"</div>":""};
 async function patchU(id,b){const r=await rest("profiles?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify(b)});return r.ok&&(await r.json()).length>0}
+let euid=null;
 async function drawUsers(){
  const r=await rest("profiles?select=*&order=creado"),a=r.ok?await r.json():[];
- $("#ul").innerHTML=a.map(u=>{const me=u.id===SES.uid?" disabled":"";return'<div class="ur"><b>'+esc(u.nombre||u.email)+'<br><small style="color:var(--mut);font-weight:500">'+esc(u.email)+'</small></b><select data-ur="'+u.id+'" aria-label="Nivel"'+me+'><option value="operador"'+(u.rol==="operador"?" selected":"")+'>Usuario</option><option value="admin"'+(u.rol==="admin"?" selected":"")+'>Administrador</option></select><button class="btn s" data-ua="'+u.id+'" data-a="'+(u.activo?0:1)+'"'+me+'>'+(u.activo?"Desactivar":"Activar")+'</button><span class="bd'+(u.activo?"":" Borrador")+'">'+(u.activo?"Activo":"Pendiente")+"</span></div>"}).join("")||'<p class="empty">Sin usuarios.</p>'}
-$("#ul").addEventListener("change",async e=>{const id=e.target.dataset.ur;if(id){await patchU(id,{rol:e.target.value});drawUsers()}});
-$("#ul").addEventListener("click",async e=>{const id=e.target.dataset.ua;if(id){await patchU(id,{activo:e.target.dataset.a==="1"});drawUsers()}});
+ $("#ul").innerHTML=a.map(u=>{const me=u.id===SES.uid,d=me?" disabled":"",ed=euid===u.id;
+  const nm=ed?'<input id="en" value="'+esc(u.nombre||"")+'" aria-label="Nombre" style="margin:0;min-height:38px">':esc(u.nombre||u.email);
+  const bt=ed?'<button class="btn s p" data-us="'+u.id+'">Guardar</button><button class="btn s" data-uc="1">Cancelar</button>':'<button class="btn s" data-ue="'+u.id+'">Editar</button>';
+  return'<div class="ur"><b>'+nm+'<br><small style="color:var(--mut);font-weight:500">'+esc(u.email)+'</small></b><select data-ur="'+u.id+'" aria-label="Nivel"'+d+'><option value="operador"'+(u.rol==="operador"?" selected":"")+'>Operario</option><option value="gerencia"'+(u.rol==="gerencia"?" selected":"")+'>Gerencia</option><option value="admin"'+(u.rol==="admin"?" selected":"")+'>Administrador</option></select><select data-uar="'+u.id+'" aria-label="Área"'+(u.rol==="operador"?"":" hidden")+'>'+AREAS.map(z=>"<option"+(z===u.area?" selected":"")+">"+z+"</option>").join("")+'</select><button class="btn s" data-ua="'+u.id+'" data-a="'+(u.activo?0:1)+'"'+d+'>'+(u.activo?"Desactivar":"Activar")+'</button><span class="bd'+(u.activo?"":" Borrador")+'">'+(u.activo?"Activo":"Pendiente")+"</span>"+bt+(me?"":'<button class="btn s" data-ud="'+u.id+'" data-n="'+esc(u.nombre||u.email)+'">Eliminar</button>')+"</div>"}).join("")||'<p class="empty">Sin usuarios.</p>'}
+const noOk="No se pudo aplicar el cambio. Recuerda que debe quedar al menos un administrador activo.";
+$("#ul").addEventListener("change",async e=>{const id=e.target.dataset.ur;if(id){if(!await patchU(id,{rol:e.target.value}))um(noOk,"bad");drawUsers()}});
+$("#ul").addEventListener("click",async e=>{const t=e.target.dataset;
+ if(t.ua){if(!await patchU(t.ua,{activo:t.a==="1"}))um(noOk,"bad");drawUsers()}
+ else if(t.ue){euid=t.ue;drawUsers()}
+ else if(t.uc){euid=null;drawUsers()}
+ else if(t.us){const n=$("#en").value.trim();if(n&&!await patchU(t.us,{nombre:n}))um("No se pudo guardar el nombre.","bad");euid=null;drawUsers()}
+ else if(t.ud){
+  if(!confirm("¿Eliminar a "+t.n+"? Ya no podrá entrar y esta acción no se puede deshacer."))return;
+  const r=await rest("rpc/arc_borrar_usuario",{method:"POST",body:JSON.stringify({p_id:t.ud})});
+  if(r.ok)um("Usuario eliminado.","ok");else{let m="No se pudo eliminar. ¿Ejecutaste el SQL de eliminación en Supabase?";try{m=(await r.json()).message||m}catch(x){}um(m,"bad")}
+  drawUsers()}});
 $("#t3").onclick=()=>tab(3);
 $("#ucr").onclick=async()=>{
  const n=$("#un").value.trim(),em=$("#ue").value.trim(),pw=$("#up").value;
  if(!em||pw.length<6)return um("Escribe un correo y una contraseña de al menos 6 caracteres.","warn");
  $("#ucr").disabled=true;um("");
  try{const j=await auth("signup",{email:em,password:pw,data:{nombre:n||em}});
-  const ok=await patchU((j.user||j).id,{nombre:n||em,rol:$("#ur").value,activo:true});
+  const ok=await patchU((j.user||j).id,{nombre:n||em,rol:$("#ur").value,activo:true,area:$("#ur").value==="operador"?$("#ua").value:null});
   um(ok?"Usuario creado y activado.":"La cuenta se creó pero no se pudo activar; revísala en la lista.",ok?"ok":"warn");
   if(ok)["un","ue","up"].forEach(k=>$("#"+k).value="");
  }catch(x){um(x.message,"bad")}
  $("#ucr").disabled=false;drawUsers()};
+
+/* ===== Roles, cierre de orden (Laminadora) y resumen ===== */
+const ROL={admin:"Administrador",gerencia:"Gerencia",operador:"Operario"},AREAS=["Laminadora Liner","Liner"];
+const canE=()=>!!ME&&(ME.rol==="admin"||ME.rol==="gerencia");
+let C=[];
+async function pullC(){try{const r=await rest("cierres?select=*");if(r.ok)C=await r.json()}catch(e){}}
+const cOf=id=>C.find(c=>c.orden_id===id);
+const acts=o=>canE()?'<select data-e="'+o.id+'" aria-label="Estado">'+opts(o)+'</select><button class="btn s" data-o="'+o.id+'">Abrir</button><button class="btn s" data-k="'+o.id+'">Cierre</button><button class="btn s" data-x="'+o.id+'">Borrar</button>':'<button class="btn s p" data-k="'+o.id+'">'+(cOf(o.id)?"Editar cierre":"Cerrar orden")+"</button>";
+$("#list").addEventListener("click",e=>{const k=e.target.dataset.k;if(k)openCierre(k)});
+$("#ul").addEventListener("change",async e=>{const id=e.target.dataset.uar;if(id){await patchU(id,{area:e.target.value});drawUsers()}});
+
+/* Material asignado = lo que se despacha (bobinas/rollos completos) */
+function asig(o){const r=calc(o.v);if(!r)return null;const n=k=>parseFloat(o.v[k])||0;
+ const c=r.c.net||r.c.kg,f=r.f.n?r.f.n*n("fN"):r.f.kg,w=r.w.keq;return{c,f,w,t:c+f+w,r}}
+/* Desperdicio = asignado - devuelto - necesario para lo producido. Normal: 15 m al arrancar + 15 m al terminar por material. Cera no desperdicia */
+function calcCierre(o,x){const a=asig(o),n=k=>parseFloat(o.v[k])||0,g=a.r.f.g,ML=x.m2/(n("util")/1000);
+ const kc=n("cA")/1000*n("cG")/1000,kf=n("fA")/1000*g;
+ const ct=ML*kc,ft=ML*kf,cu=a.c-x.cd,fu=a.f-x.fd,cw=cu-ct,fw=fu-ft,meta=n("area");
+ return{a,ct,ft,cu,fu,cw,fw,cp:a.c?cw/a.c*100:0,fp:a.f?fw/a.f*100:0,nc:30*kc,nf:30*kf,meta,pct:meta?x.m2/meta*100:0,falta:Math.max(0,meta-x.m2)}}
+function openCierre(id){const p=S.o.filter(o=>asig(o)&&(!cOf(o.id)||o.id===id));
+ $("#cord").innerHTML=p.map(o=>'<option value="'+o.id+'">'+o.id+" · "+esc(o.v.producto||"")+"</option>").join("");
+ $("#cord").value=id&&p.some(o=>o.id===id)?id:(p[0]&&p[0].id)||"";tab(4);fillC()}
+function fillC(){const o=S.o.find(x=>x.id===$("#cord").value);
+ if(!o){$("#ci").innerHTML='<p class="empty">No hay órdenes pendientes de cierre.</p>';$("#cr").innerHTML="";$("#csave").hidden=true;return}
+ const c=cOf(o.id),a=asig(o);$("#csave").hidden=false;
+ $("#co").value=c?c.operario:(ME.nombre||ME.email);$("#cm").value=c?c.m2_producidos:"";$("#cf").value=c?c.film_dev:0;$("#cc").value=c?c.carton_dev:0;$("#cw").value=c?c.cera_dev:0;
+ $("#ci").innerHTML="<dl>"+row("Meta de la orden",fmt(+o.v.area)+" m²")+row("Cartón asignado",fmt(a.c)+" kg")+row("Film asignado",fmt(a.f)+" kg")+row("Cera asignada",fmt(a.w)+" kg")+"</dl>";calcC()}
+const rdC=()=>{const n=i=>parseFloat($(i).value)||0;return{m2:n("#cm"),fd:n("#cf"),cd:n("#cc"),wd:n("#cw")}};
+function calcC(){const o=S.o.find(x=>x.id===$("#cord").value);if(!o)return;const x=rdC(),k=calcCierre(o,x),a=k.a,m=[];
+ if(x.cd>a.c+1e-9)m.push(["bad","El cartón devuelto ("+fmt(x.cd)+" kg) es mayor al asignado ("+fmt(a.c)+" kg). Rectifica tus datos."]);
+ if(x.fd>a.f+1e-9)m.push(["bad","El film devuelto ("+fmt(x.fd)+" kg) es mayor al asignado ("+fmt(a.f)+" kg). Rectifica tus datos."]);
+ if(x.wd>a.w+1e-9)m.push(["bad","La cera devuelta ("+fmt(x.wd)+" kg) es mayor a la asignada ("+fmt(a.w)+" kg). Rectifica tus datos."]);
+ if(!(x.m2>0))m.push(["warn","Escribe los m² de producto terminado."]);
+ else if(k.cw<-.5||k.fw<-.5)m.push(["bad","El material usado es menor al que necesita ese producto terminado. Rectifica los m² y las devoluciones."]);
+ else if(k.cw-k.nc>.5||k.fw-k.nf>.5)m.push(["warn","Desperdicio mayor al normal (15 m al arrancar y 15 m al terminar por material)."]);
+ const f=(t,u,ne,w,p)=>"<h3>"+t+"</h3><dl>"+row("Utilizado",fmt(u)+" kg")+row("Desperdicio",fmt(w)+" kg · "+fmt(p,1)+" %",w-ne>.5)+row("Normal esperado (30 m)",fmt(ne)+" kg")+"</dl>";
+ $("#cr").innerHTML='<div class="al '+(x.m2>0?(k.pct>=100?"ok":"warn"):"warn")+'">'+(x.m2>0?(k.pct>=100?"Orden COMPLETADA · ":"Orden PARCIAL · faltaron "+fmt(k.falta)+" m² · ")+fmt(k.pct,1)+" % de la meta":"Sin producto terminado")+"</div>"+f("Cartón",k.cu,k.nc,k.cw,k.cp)+f("Film",k.fu,k.nf,k.fw,k.fp)+"<h3>Cera</h3><dl>"+row("Utilizada (sin merma)",fmt(a.w-x.wd)+" kg")+"</dl>"+al(m);
+ $("#csave").disabled=!(x.m2>0)||m.some(z=>z[0]==="bad")||!$("#co").value.trim()}
+$("#cord").onchange=fillC;$("#v4").addEventListener("input",calcC);$("#ccancel").onclick=()=>tab(1);
+$("#csave").onclick=async()=>{const o=S.o.find(x=>x.id===$("#cord").value),x=rdC(),k=calcCierre(o,x),ex=cOf(o.id);
+ const b={orden_id:o.id,operario:$("#co").value.trim(),area:"Laminadora Liner",m2_producidos:x.m2,film_dev:x.fd,carton_dev:x.cd,cera_dev:x.wd,film_ini:k.a.f,carton_ini:k.a.c,cera_ini:k.a.w,meta_m2:k.meta,film_desp:k.fw,carton_desp:k.cw,film_pct:k.fp,carton_pct:k.cp,completa:k.pct>=100,actualizado:new Date().toISOString()};
+ $("#csave").disabled=true;
+ const r=ex?await rest("cierres?id=eq."+ex.id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify(b)}):await rest("cierres",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(b)});
+ if(r.ok){await pull();tab(1)}else{const j=await r.json().catch(()=>({}));$("#cr").insertAdjacentHTML("beforeend",'<div class="al bad">No se pudo guardar: '+esc(j.message||"error "+r.status)+"</div>");$("#csave").disabled=false}};
+function drawRes(){const by={};C.forEach(c=>{const b=by[c.operario]||(by[c.operario]={n:0,f:0,c:0});b.n++;b.f+=+c.film_desp;b.c+=+c.carton_desp});
+ $("#rs").innerHTML="<h2>Desperdicio por operario</h2><dl>"+(Object.keys(by).map(k=>row(esc(k)+" · "+by[k].n+" cierres","Film "+fmt(by[k].f)+" kg · Cartón "+fmt(by[k].c)+" kg")).join("")||'<p class="empty">Aún no hay cierres.</p>')+"</dl><h2>Órdenes cerradas</h2>"+
+ C.slice().sort((a,b)=>a.actualizado<b.actualizado?1:-1).map(c=>'<div class="ur"><b>'+esc(c.orden_id)+" · "+esc(c.operario)+'<br><small style="color:var(--mut);font-weight:500">'+fmt(c.m2_producidos)+" m² de "+fmt(c.meta_m2)+" m² · Desp. film "+fmt(c.film_desp)+" kg ("+fmt(c.film_pct,1)+" %) · cartón "+fmt(c.carton_desp)+" kg ("+fmt(c.carton_pct,1)+" %)<br>Devolvió: film "+fmt(c.film_dev)+" · cartón "+fmt(c.carton_dev)+" · cera "+fmt(c.cera_dev)+' kg</small></b><span class="bd '+(c.completa?"Completa":"Parcial")+'">'+(c.completa?"Completa":"Parcial")+"</span></div>").join("")}
 
 /* ===== Inicio ===== */
 if(SES)boot().catch(()=>showLogin());else showLogin();
