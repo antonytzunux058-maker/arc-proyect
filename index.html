@@ -181,6 +181,10 @@ body.op .adm{display:none}
    <label>Peso por bloc de cera (kg)<input id="pb" type="number" inputmode="decimal" step="any"></label>
    <label>Blocs a pedir (vacío = sugerido)<input id="bp" type="number" inputmode="numeric" step="1" min="0"></label>
   </div></div>
+  <div class="card"><h2>Bobinas solicitadas (peso real)</h2>
+   <p style="margin:0 0 6px;font-size:14px;color:var(--mut)">Agrega el peso real de cada bobina o rollo que se despacha. Con esos kilos se calcula el desperdicio exacto del cierre.</p>
+   <h3>Cartón</h3><div id="rcl"></div><button class="btn s" id="arc">Agregar bobina de cartón</button>
+   <h3>Film</h3><div id="rfl"></div><button class="btn s" id="arf">Agregar rollo de film</button><div id="rsum" style="margin-top:8px"></div></div>
   <div class="card"><h2>Liners / tiras</h2><div id="lns"></div><button class="btn" id="addl">Agregar liner</button></div>
  </div>
  <div>
@@ -281,7 +285,7 @@ let editing=null,liners=[],regDate=iso(new Date());
 const al=a=>a.map(x=>'<div class="al '+x[0]+'">'+x[1]+"</div>").join("");
 const row=(l,v,w)=>"<div><dt>"+l+"</dt><dd"+(w?' class="w"':"")+">"+v+"</dd></div>";
 function vals(){const v={};K.forEach(k=>v[k]=$("#"+k).value);return v}
-function setVals(v){K.forEach(k=>$("#"+k).value=v[k]??(k==="pb"?4.8:""));liners=(v.liners||[]).map(l=>({...l}));drawLiners();update()}
+function setVals(v){K.forEach(k=>$("#"+k).value=v[k]??(k==="pb"?4.8:""));liners=(v.liners||[]).map(l=>({...l}));bc=(v.bc||[]).slice();bf=(v.bf||[]).slice();drawLiners();drawRolls();update()}
 function drawLiners(){
  $("#lns").innerHTML=liners.length?liners.map((l,i)=>'<div class="lr"><label>Ítem<input data-i="'+i+'" data-f="n" value="'+esc(l.n)+'"></label><label>Medida (mm)<input data-i="'+i+'" data-f="m" type="number" inputmode="decimal" value="'+l.m+'"></label><label>Margen (mm)<input data-i="'+i+'" data-f="g" type="number" inputmode="decimal" value="'+l.g+'"></label><button class="btn s" data-d="'+i+'" aria-label="Quitar">Quitar</button></div><div class="al ok" style="margin-top:-2px">Tira: <b>'+fmt((+l.m||0)+(+l.g||0),0)+" mm</b> · desperdicio "+fmt((+l.m||0)+(+l.g||0)?(+l.g||0)/((+l.m||0)+(+l.g||0))*100:0,1)+" %</div>").join(""):'<p class="empty">Sin liners. Agrega medida final y margen de corte (6 mm por defecto).</p>';
 }
@@ -306,7 +310,7 @@ function update(){
  if(liners.length)h+="<h3>Solicitud de liners / tiras</h3><dl>"+liners.map(l=>row(esc(l.n||"Liner")+" · "+fmt(+l.m||0,0)+" + "+fmt(+l.g||0,0)+" mm","Tira "+fmt((+l.m||0)+(+l.g||0),0)+" mm")).join("")+"</dl>";
  $("#rc").innerHTML="<h2>Requisición de materiales</h2>"+h+al(cc);countUp();
  $("#save").disabled=[...ds,...cc].some(x=>x[0]==="bad")||(!r&&!liners.length);
- $("#save").textContent=editing?"Actualizar orden":"Guardar orden";
+ $("#save").textContent=editing?"Actualizar orden":"Guardar orden";sumRolls();
 }
 
 /* ===== Lista de órdenes ===== */
@@ -335,7 +339,7 @@ $("#v2").addEventListener("click",e=>{
 $("#addl").onclick=()=>{liners.push({n:"Liner "+(liners.length+1),m:54,g:6});drawLiners();update()};
 $("#cancel").onclick=()=>tab(1);
 $("#save").onclick=async()=>{
- const v=vals();v.liners=liners.map(l=>({...l}));let o;
+ const v=vals();v.liners=liners.map(l=>({...l}));v.bc=bc.map(x=>+x||0).filter(x=>x>0);v.bf=bf.map(x=>+x||0).filter(x=>x>0);let o;
  if(editing){o=S.o.find(x=>x.id===editing);o.v=v;persist();await put(o)}
  else{await pull();S.c=Math.max(S.c,0,...S.o.map(x=>+x.id.slice(4)));
   for(let k=0;k<6;k++){S.c++;o={id:"ORD-"+String(S.c).padStart(3,"0"),reg:regDate,est:"Borrador",v};if(await create(o))break}
@@ -425,7 +429,7 @@ $("#ul").addEventListener("click",async e=>{const t=e.target.dataset;
   const r=await rest("rpc/arc_borrar_usuario",{method:"POST",body:JSON.stringify({p_id:t.ud})});
   if(r.ok)um("Usuario eliminado.","ok");else{let m="No se pudo eliminar. ¿Ejecutaste el SQL de eliminación en Supabase?";try{m=(await r.json()).message||m}catch(x){}um(m,"bad")}
   drawUsers()}});
-$("#t3").onclick=()=>tab(3);
+$("#t3").onclick=()=>tab(3);$("#t5").onclick=()=>tab(5);
 $("#ucr").onclick=async()=>{
  const n=$("#un").value.trim(),em=$("#ue").value.trim(),pw=$("#up").value;
  if(!em||pw.length<6)return um("Escribe un correo y una contraseña de al menos 6 caracteres.","warn");
@@ -441,15 +445,17 @@ $("#ucr").onclick=async()=>{
 const ROL={admin:"Administrador",gerencia:"Gerencia",operador:"Operario"},AREAS=["Laminadora Liner","Liner"];
 const canE=()=>!!ME&&(ME.rol==="admin"||ME.rol==="gerencia");
 let C=[];
-async function pullC(){try{const r=await rest("cierres?select=*");if(r.ok)C=await r.json()}catch(e){}}
+let cErr="";
+async function pullC(){cErr="";try{const r=await rest("cierres?select=*");if(r.ok)C=await r.json();else{const j=await r.json().catch(()=>({}));cErr=j.message||"error "+r.status}}catch(e){cErr="sin conexión"}}
+const msgC=(j,r)=>{const m=j.message||"error "+r.status;return/schema cache|does not exist|relation|column/i.test(m)?"Falta ejecutar el SQL de cierres en Supabase ("+m+")":m};
 const cOf=id=>C.find(c=>c.orden_id===id);
 const acts=o=>canE()?'<select data-e="'+o.id+'" aria-label="Estado">'+opts(o)+'</select><button class="btn s" data-o="'+o.id+'">Abrir</button><button class="btn s" data-k="'+o.id+'">Cierre</button><button class="btn s" data-x="'+o.id+'">Borrar</button>':'<button class="btn s p" data-k="'+o.id+'">'+(cOf(o.id)?"Editar cierre":"Cerrar orden")+"</button>";
 $("#list").addEventListener("click",e=>{const k=e.target.dataset.k;if(k)openCierre(k)});
 $("#ul").addEventListener("change",async e=>{const id=e.target.dataset.uar;if(id){await patchU(id,{area:e.target.value});drawUsers()}});
 
 /* Material asignado = lo que se despacha (bobinas/rollos completos) */
-function asig(o){const r=calc(o.v);if(!r)return null;const n=k=>parseFloat(o.v[k])||0;
- const c=r.c.net||r.c.kg,f=r.f.n?r.f.n*n("fN"):r.f.kg,w=r.w.keq;return{c,f,w,t:c+f+w,r}}
+function asig(o){const r=calc(o.v);if(!r)return null;const n=k=>parseFloat(o.v[k])||0,T=a=>(a||[]).reduce((x,y)=>x+(+y||0),0),sc=T(o.v.bc),sf=T(o.v.bf);
+ const c=sc>0?sc:(r.c.net||r.c.kg),f=sf>0?sf:(r.f.n?r.f.n*n("fN"):r.f.kg),w=r.w.keq;return{c,f,w,t:c+f+w,r,nbc:(o.v.bc||[]).length,nbf:(o.v.bf||[]).length}}
 /* Desperdicio = asignado - devuelto - necesario para lo producido. Normal: 15 m al arrancar + 15 m al terminar por material. Cera no desperdicia */
 function calcCierre(o,x){const a=asig(o),n=k=>parseFloat(o.v[k])||0,g=a.r.f.g,ML=x.m2/(n("util")/1000);
  const kc=n("cA")/1000*n("cG")/1000,kf=n("fA")/1000*g;
@@ -462,7 +468,7 @@ function fillC(){const o=S.o.find(x=>x.id===$("#cord").value);
  if(!o){$("#ci").innerHTML='<p class="empty">No hay órdenes pendientes de cierre.</p>';$("#cr").innerHTML="";$("#csave").hidden=true;return}
  const c=cOf(o.id),a=asig(o);$("#csave").hidden=false;
  $("#co").value=c?c.operario:(ME.nombre||ME.email);$("#cm").value=c?c.m2_producidos:"";$("#cf").value=c?c.film_dev:0;$("#cc").value=c?c.carton_dev:0;$("#cw").value=c?c.cera_dev:0;
- $("#ci").innerHTML="<dl>"+row("Meta de la orden",fmt(+o.v.area)+" m²")+row("Cartón asignado",fmt(a.c)+" kg")+row("Film asignado",fmt(a.f)+" kg")+row("Cera asignada",fmt(a.w)+" kg")+"</dl>";calcC()}
+ $("#ci").innerHTML="<dl>"+row("Meta de la orden",fmt(+o.v.area)+" m²")+row("Cartón asignado"+(a.nbc?" ("+a.nbc+" bobinas)":""),fmt(a.c)+" kg")+(a.nbc?row("Pesos de bobinas",o.v.bc.map(x=>fmt(x,1)).join(" + ")+" kg"):"")+row("Film asignado"+(a.nbf?" ("+a.nbf+" rollos)":""),fmt(a.f)+" kg")+(a.nbf?row("Pesos de rollos",o.v.bf.map(x=>fmt(x,1)).join(" + ")+" kg"):"")+row("Cera asignada",fmt(a.w)+" kg")+"</dl>"+(cErr?'<div class="al bad">No se pudo leer la tabla de cierres ('+esc(cErr)+"). Ejecuta el SQL de cierres en Supabase y recarga.</div>":"");calcC()}
 const rdC=()=>{const n=i=>parseFloat($(i).value)||0;return{m2:n("#cm"),fd:n("#cf"),cd:n("#cc"),wd:n("#cw")}};
 function calcC(){const o=S.o.find(x=>x.id===$("#cord").value);if(!o)return;const x=rdC(),k=calcCierre(o,x),a=k.a,m=[];
  if(x.cd>a.c+1e-9)m.push(["bad","El cartón devuelto ("+fmt(x.cd)+" kg) es mayor al asignado ("+fmt(a.c)+" kg). Rectifica tus datos."]);
@@ -479,10 +485,20 @@ $("#csave").onclick=async()=>{const o=S.o.find(x=>x.id===$("#cord").value),x=rdC
  const b={orden_id:o.id,operario:$("#co").value.trim(),area:"Laminadora Liner",m2_producidos:x.m2,film_dev:x.fd,carton_dev:x.cd,cera_dev:x.wd,film_ini:k.a.f,carton_ini:k.a.c,cera_ini:k.a.w,meta_m2:k.meta,film_desp:k.fw,carton_desp:k.cw,film_pct:k.fp,carton_pct:k.cp,completa:k.pct>=100,actualizado:new Date().toISOString()};
  $("#csave").disabled=true;
  const r=ex?await rest("cierres?id=eq."+ex.id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify(b)}):await rest("cierres",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(b)});
- if(r.ok){await pull();tab(1)}else{const j=await r.json().catch(()=>({}));$("#cr").insertAdjacentHTML("beforeend",'<div class="al bad">No se pudo guardar: '+esc(j.message||"error "+r.status)+"</div>");$("#csave").disabled=false}};
+ if(r.ok){await pull();tab(1)}else{const j=await r.json().catch(()=>({}));$("#cr").insertAdjacentHTML("beforeend",'<div class="al bad">No se pudo guardar: '+esc(msgC(j,r))+"</div>");$("#csave").disabled=false}};
 function drawRes(){const by={};C.forEach(c=>{const b=by[c.operario]||(by[c.operario]={n:0,f:0,c:0});b.n++;b.f+=+c.film_desp;b.c+=+c.carton_desp});
  $("#rs").innerHTML="<h2>Desperdicio por operario</h2><dl>"+(Object.keys(by).map(k=>row(esc(k)+" · "+by[k].n+" cierres","Film "+fmt(by[k].f)+" kg · Cartón "+fmt(by[k].c)+" kg")).join("")||'<p class="empty">Aún no hay cierres.</p>')+"</dl><h2>Órdenes cerradas</h2>"+
  C.slice().sort((a,b)=>a.actualizado<b.actualizado?1:-1).map(c=>'<div class="ur"><b>'+esc(c.orden_id)+" · "+esc(c.operario)+'<br><small style="color:var(--mut);font-weight:500">'+fmt(c.m2_producidos)+" m² de "+fmt(c.meta_m2)+" m² · Desp. film "+fmt(c.film_desp)+" kg ("+fmt(c.film_pct,1)+" %) · cartón "+fmt(c.carton_desp)+" kg ("+fmt(c.carton_pct,1)+" %)<br>Devolvió: film "+fmt(c.film_dev)+" · cartón "+fmt(c.carton_dev)+" · cera "+fmt(c.cera_dev)+' kg</small></b><span class="bd '+(c.completa?"Completa":"Parcial")+'">'+(c.completa?"Completa":"Parcial")+"</span></div>").join("")}
+
+/* Bobinas / rollos solicitados con su peso real */
+let bc=[],bf=[];
+const rr=(a,k)=>a.map((w,i)=>'<div class="lr" style="grid-template-columns:1fr auto"><label>'+(k==="rc"?"Bobina ":"Rollo ")+(i+1)+' (kg)<input data-'+k+'="'+i+'" type="number" inputmode="decimal" step="any" value="'+(w||"")+'"></label><button class="btn s" data-q'+k+'="'+i+'">Quitar</button></div>').join("");
+function drawRolls(){$("#rcl").innerHTML=rr(bc,"rc");$("#rfl").innerHTML=rr(bf,"rf");sumRolls()}
+function sumRolls(){const r=calc(vals()),T=a=>a.reduce((x,y)=>x+(+y||0),0),L=(nm,a,q,u)=>{const s=T(a);return'<div class="al '+(s>0&&(!q||s>=q)?"ok":"warn")+'">'+nm+": "+(s>0?a.filter(x=>+x>0).length+" "+u+" · "+fmt(s)+" kg solicitados"+(q?" · requerido "+fmt(q)+" kg · "+(s>=q?"sobran "+fmt(s-q):"faltan "+fmt(q-s))+" kg":""):"sin pesos; se usará el estimado de ARC")+"</div>"};
+ $("#rsum").innerHTML=L("Cartón",bc,r&&r.c.kg,"bobinas")+L("Film",bf,r&&r.f.kg,"rollos")}
+$("#arc").onclick=()=>{bc.push(0);drawRolls()};$("#arf").onclick=()=>{bf.push(0);drawRolls()};
+$("#v2").addEventListener("input",e=>{const t=e.target.dataset;if(t.rc!==undefined)bc[+t.rc]=parseFloat(e.target.value)||0;if(t.rf!==undefined)bf[+t.rf]=parseFloat(e.target.value)||0;if(t.rc!==undefined||t.rf!==undefined)sumRolls()});
+$("#v2").addEventListener("click",e=>{const t=e.target.dataset;if(t.qrc!==undefined){bc.splice(+t.qrc,1);drawRolls()}if(t.qrf!==undefined){bf.splice(+t.qrf,1);drawRolls()}});
 
 /* ===== Inicio ===== */
 if(SES)boot().catch(()=>showLogin());else showLogin();
